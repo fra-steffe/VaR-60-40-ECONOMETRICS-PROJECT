@@ -1,29 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# =============================================================================
-#  Tesi VaR 60/40 attraverso il regime shift 2022 - CHAT 3, analisi preliminare.
-#
-#  A cosa serve questo script (in una frase): costruisce le serie di rendimento
-#  di SPY, TLT e del portafoglio 60/40, ne calcola le statistiche descrittive,
-#  documenta il cambio di regime della correlazione stock-bond, scompone la
-#  varianza del portafoglio e decide l'equazione della media. Salva tutto come
-#  CSV e grafici.
-#
-#  Come leggerlo: le funzioni in alto fanno una cosa ciascuna; main() in fondo
-#  le chiama nell'ordine logico (carica -> rendimenti -> descrittive ->
-#  correlazione -> decomposizione -> diagnostica -> salva).
-#
-#  Ambiente: Python + numpy, pandas, scipy, statsmodels, matplotlib. Le versioni
-#  effettive vengono stampate all'avvio. Analisi deterministica: nessun seed.
-#
-#  Stazionarieta' (nessun test ADF): i materiali del corso definiscono la
-#  stazionarieta' solo in termini strutturali (radici del polinomio
-#  caratteristico fuori dal cerchio unitario per ARMA; autovalori della matrice
-#  compagna <1 in modulo per VAR). Qui la stazionarieta' dei rendimenti si
-#  ottiene per costruzione: i prezzi sono, per convenzione consolidata in finanza
-#  empirica, processi integrati d'ordine 1, e il log-differenziamento rimuove il
-#  trend stocastico. Nessun test di radice unitaria viene calcolato.
-# =============================================================================
+#  Step 1 - Data and preliminary analysis (paper, Section 3).
+
 
 import os
 
