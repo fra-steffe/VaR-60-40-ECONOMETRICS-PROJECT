@@ -1,0 +1,26 @@
+# --- Raw data (Yahoo Finance terms restrict redistribution) ---
+data/
+reference_outputs/prices_spy_tlt.csv
+prices_spy_tlt.csv
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# --- R ---
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# --- Editor / OS ---
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- Scratch ---
+scratch/
+*.log
