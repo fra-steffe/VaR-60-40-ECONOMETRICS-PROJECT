@@ -1,6 +1,6 @@
 # --- Raw data (Yahoo Finance terms restrict redistribution) ---
 data/
-reference_outputs/prices_spy_tlt.csv
+reference_outputs/
 prices_spy_tlt.csv
 
 # --- Python ---
