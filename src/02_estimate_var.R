@@ -1,6 +1,5 @@
-# =============================================================================
 #  Step 2 - Volatility models and one-day VaR (paper, Section 4).
-#
+
 #  Estimates AR(1)-GARCH(1,1) marginals for SPY and TLT, with Gaussian and
 #  Student-t innovations, and a DCC(1,1) correlation on top. A rolling
 #  1,000-day window, re-estimated every 21 days, gives one-step-ahead
@@ -13,10 +12,6 @@
 #  2024; none in 2022) the default optimizer fails and a fallback with random
 #  restarts is used, so a re-run can differ slightly there. The CSVs in
 #  results/ are the ones behind the paper.
-#
-#  Run from the repository root:  Rscript src/02_estimate_var.R
-#  Runtime: about 15-20 minutes (408 DCC estimations).
-# =============================================================================
 
 library(rugarch)   # univariate GARCH models (the marginals)
 library(rmgarch)   # DCC on top of the rugarch marginals
@@ -24,7 +19,7 @@ library(xts)       # date-indexed series, required by rmgarch
 library(fGarch)    # standardized Student-t: stdFit (estimation), qstd (quantile)
 
 
-# --- Parameters ---------------------------------------------------------------
+# Parameters
 INPUT_FILE <- "results/returns_spy_tlt_6040.csv"
 RESULTS_DIR <- "results"
 FIGURES_DIR <- "figures"
@@ -36,7 +31,7 @@ TAIL_WINDOW <- 500         # past standardized returns used for the t and semipa
 HS_WINDOW <- 250           # past raw returns used by historical simulation
 
 
-# --- 1. Data and model specifications ----------------------------------------
+#1. Data and model specifications 
 
 # Load the Step 1 returns. rmgarch needs the two assets as a date-indexed
 # (xts) series; the portfolio return is kept for the VaR step.
@@ -61,17 +56,15 @@ marginal_spec <- function(distribution) {
 }
 
 
-# DCC(1,1) of Engle (2002) on top of the same marginal model for both assets.
-# The correlation is estimated under a multivariate normal: fat tails enter
-# only through the Student-t marginals, never through the joint dependence.
+# DCC(1,1) on top of the same marginal model for both assets.
 dcc_spec <- function(marginal) {
   both_assets <- multispec(replicate(2, marginal))
   dccspec(uspec = both_assets, dccOrder = c(1, 1), distribution = "mvnorm")
 }
 
 
-# --- 2. Full-sample estimation: Table 6 and residual diagnostics -------------
-# Not used for the VaR (that is the rolling engine below): one estimation on
+# 2. Full-sample estimation: Table 6 and residual diagnostics
+# Not used for the VaR: one estimation on
 # the whole 2004-2024 sample, to report typical parameter values and check
 # the AR(1)-GARCH(1,1) specification on its residuals.
 
@@ -85,9 +78,7 @@ fit_marginals_full_sample <- function(asset_returns, spec_normal, spec_t) {
 }
 
 
-# show() prints each fit with its weighted Ljung-Box tests (on standardized
-# residuals: is the AR(1) mean enough? on their squares: has the GARCH(1,1)
-# absorbed volatility clustering?) and the ARCH-LM test. These are the
+# show() prints each fit with its weighted Ljung-Box tests. These are the
 # diagnostics discussed in Section 4 of the paper.
 print_marginal_diagnostics <- function(marginal_fits) {
   for (name in names(marginal_fits)) {
@@ -128,7 +119,7 @@ dcc_parameter_table <- function(spec_normal, spec_t, asset_returns) {
 }
 
 
-# --- 3. DCC estimation on one block ------------------------------------------
+#3. DCC estimation on one block
 
 # Estimate the DCC on one block and forecast the covariance matrix one day
 # ahead for each of the block's last n_forecast days.
@@ -145,10 +136,8 @@ fit_and_forecast <- function(spec, block_data, n_forecast, solver) {
 
 
 # Some windows make the default optimizer fail, typically the Student-t
-# marginal of TLT, whose degrees of freedom drift towards large, poorly
-# identified values. Solvers are tried in order: "solnp", then "gosolnp"
-# (random restarts: the source of the non-reproducibility noted in the
-# header), then "nlminb". If all three fail, the block is recorded as
+# marginal of TLT. Solvers are tried in order: "solnp", then "gosolnp"
+# then "nlminb". If all three fail, the block is recorded as
 # non-converged and its days are left missing.
 estimate_dcc_block <- function(spec, block_data, n_forecast) {
   for (solver in c("solnp", "gosolnp", "nlminb")) {
@@ -162,11 +151,9 @@ estimate_dcc_block <- function(spec, block_data, n_forecast) {
 }
 
 
-# --- 4. From the covariance forecast to portfolio sigma (CCC and DCC) --------
+#  4. From the covariance forecast to portfolio sigma (CCC and DCC)
 
-# Constant correlation of the CCC model (Bollerslev, 1990): the sample
-# correlation of the standardized residuals in the estimation window, taken
-# from the same fit as the DCC. Setting a = b = 0 in the DCC recursion leaves
+# Constant correlation of the CCC model. Setting a = b = 0 in the DCC recursion leaves
 # exactly this constant matrix, so the CCC needs no separate estimation and
 # shares the DCC's marginals: comparing the two isolates the correlation.
 constant_correlation <- function(fit) {
@@ -217,7 +204,7 @@ block_sigmas <- function(fit, forecast, weights) {
 }
 
 
-# --- 5. Rolling out-of-sample engine -----------------------------------------
+# 5. Rolling out-of-sample engine
 
 # A 1,000-day estimation window moves forward 21 days at a time. At each step
 # both branches (Gaussian and Student-t) are re-estimated on the same window
@@ -300,11 +287,10 @@ split_ccc_dcc <- function(branch) {
 }
 
 
-# --- 6. From portfolio sigma to VaR ------------------------------------------
+# 6. From portfolio sigma to VaR
 
 # Attach the realized portfolio return to each forecast date and standardize
-# it by the forecast sigma: z_p = (r_p - mu_p) / sigma_p, with mu_p = 0 because
-# the daily mean is negligible against volatility.
+# it by the forecast sigma.
 add_standardized_returns <- function(sigmas, returns) {
   merged <- merge(sigmas, returns[, c("Date", "r_6040")],
                   by.x = "date", by.y = "Date", all.x = TRUE)
@@ -397,11 +383,9 @@ var_table <- function(alpha, normal_ccc, normal_dcc, t_ccc, t_dcc,
 }
 
 
-# --- 7. Figure 3 -------------------------------------------------------------
+# 7. Figure 3 
 
 # Forecast 5% VaR against realized daily losses, October 2021 to March 2023.
-# Losses are plotted as positive numbers, so a violation is a grey bar above a
-# model's line. Labels are kept as in the published figure.
 plot_var_2022 <- function(var_values, path) {
   models <- c("CCC_N", "DCC_N", "CCC_t", "DCC_t", "HS")
   colors <- c(CCC_N = "blue", DCC_N = "orange", CCC_t = "green4",
@@ -426,8 +410,7 @@ plot_var_2022 <- function(var_values, path) {
 }
 
 
-# --- Main ---------------------------------------------------------------------
-
+# Main
 dir.create(RESULTS_DIR, showWarnings = FALSE)
 dir.create(FIGURES_DIR, showWarnings = FALSE)
 
