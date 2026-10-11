@@ -72,6 +72,7 @@ christoffersen_tests <- function(violations, p) {
   uc_pval <- 1 - pchisq(uc_LR, df = 1)
 
   #count transitions between consecutive days
+  yesterday <- violations[-n_days]
   today <- violations[-1]
   n00 <- sum(yesterday == 0 & today == 0)
   n01 <- sum(yesterday == 0 & today == 1)
